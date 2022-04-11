@@ -9,7 +9,7 @@ defmodule Testebot.Consumer do
 
     def handle_event({:MESSAGE_CREATE, msg, _ws_state}) do
         case msg.content do
-            "!oi" -> Api.create_message(msg.channel_id, "Olá")
+            "!oi" -> Api.create_message(msg.channel_id, "Ola, meu consagrado")
             _ -> :ignore
         end
     end
