@@ -18,7 +18,7 @@ defmodule Testebot.Consumer do
 2- !pokedex nome/numero: Exibe informações básicas sobre determinado pokemon por nome ou número, utilizando a PokeAPI
 3- !weather cidade: Exibe relatório geral climático de determinada cidade, com informações complementares, utilizando a OpenWeather API
 4- !tweetsearch keyword: Pesquisa os 10 tweets mais recentes e detalhes contendo a palavra chave fornecida. Requer conta/token apropriado e utiliza a API oficial do twitter.
-5- !govstats: Alguma estatística utilizando a API de dados gov br/portal da transparência. Se possível trabalhar dados e exibir em uma gráfico através da Image-Charts
+5- !translate: Traduz qualquer texto fornecido em ingles para portugues, atraves da google translate API
 6- !generateqr link: gera qr code copiável para qualquer link fornecido.
 7- !lifeadvice: Gera conselho aleatório sobre a vida chamado por Advice Slip
 8- !startup: Gera uma definição de StartUp
@@ -36,7 +36,7 @@ defmodule Testebot.Consumer do
             String.starts_with?(msg.content, "!pokedex") ->
                 Api.create_message(msg.channel_id, "Use **!pokedex <Nome>**.")
 
-            #3
+            #3 DONE
             String.starts_with?(msg.content, "!weather ") -> weather_query(msg)
             String.starts_with?(msg.content, "!weather") ->
                 Api.create_message(msg.channel_id, "Use **!weather <Nome da cidade>**.")
@@ -44,24 +44,24 @@ defmodule Testebot.Consumer do
             String.starts_with?(msg.content, "!tweetsearch ") -> tweetsearch_query(msg)
             String.starts_with?(msg.content, "!tweetsearch") ->
                 Api.create_message(msg.channel_id, "Use **!tweetsearch <Termo>**.")
-            #5
-            String.starts_with?(msg.content, "!govstats ") -> govstats_query(msg)
-            String.starts_with?(msg.content, "!govstats") ->
-                Api.create_message(msg.channel_id, "Use **!govstats <Nome da cidade>**.")
-            #6
+            #5 DONE
+            String.starts_with?(msg.content, "!translate ") -> translate_query(msg)
+            String.starts_with?(msg.content, "!translate") ->
+                Api.create_message(msg.channel_id, "Use **!translate <Texto a ser traduzido do ingles para portugues>**.")
+            #6 DONE
             String.starts_with?(msg.content, "!generateqr ") -> qr_query(msg)
             String.starts_with?(msg.content, "!generateqr") ->
                 Api.create_message(msg.channel_id, "Use **!generateqr <Link>**.")
             #7 DONE
-            String.starts_with?(msg.content, "!lifeadvice") -> lifeadvice_query(msg)
+            String.equivalent?(msg.content, "!lifeadvice") -> lifeadvice_query(msg)
             #8 DONE
-            String.starts_with?(msg.content, "!startup") -> startup_query(msg)
+            String.equivalent?(msg.content, "!startup") -> startup_query(msg)
             #9
             String.starts_with?(msg.content, "!pokemonin ") -> pokemonforcity_query(msg)
             String.starts_with?(msg.content, "!pokemonin") ->
                 Api.create_message(msg.channel_id, "Use **!pokemonin <Cidade>**.")
-            #10
-            String.starts_with?(msg.content, "!dadjoke") -> dadjoke_query(msg)
+            #10 DONE
+            String.equivalent?(msg.content, "!dadjoke") -> dadjoke_query(msg)
 
             true -> :ignore
         end
@@ -106,7 +106,6 @@ defmodule Testebot.Consumer do
         {status, map} = Poison.decode(resp.body)
 
         case status do
-        #!!!!!!!usar referencia https://github.com/neomarceljuca/pythonStudies/blob/master/pokeapi.py
         :ok ->
             meunome = map["name"]
             foundTypes = Enum.map(map["types"], fn val ->
@@ -137,37 +136,75 @@ defmodule Testebot.Consumer do
     def weather_query(msg) do
         corpo = String.split(msg.content, " ", parts: 2)
         argumento = Enum.fetch!(corpo, 1)
-        #resp = HTTPoison.get!("https://eldenring.fanapis.com/api/bosses?name=#{bossName}")
-        #{:ok, map} = Poison.decode(resp.body)
-        Api.create_message(msg.channel_id, "Funcao 3(tempo), argumento: #{argumento}")
+
+        resp = HTTPoison.get!("http://api.openweathermap.org/data/2.5/weather?q=#{argumento}&appid=#{
+            Application.get_env(:nostrum, :openWeatherToken)}")
+        {:ok, map} = Poison.decode(resp.body)
+
+        case map["cod"] do
+          200 ->
+            #teste traducao
+            clima = portufy("#{Enum.at(map["weather"], 0)["description"]}")
+            Api.create_message(msg.channel_id, "Funcao 3 - Relatorio do tempo
+          Cidade: #{map["name"]}, #{map["sys"]["country"]}
+          Temperatura: #{ Float.round(map["main"]["temp"] - 273.15, 2) } C°
+          Clima: #{clima}
+          Humidade: #{map["main"]["humidity"]}%
+          ")
+          _ -> Api.create_message(msg.channel_id, "Houve um erro na requisicao.")
+        end
+
+
     end
     #Funcao 4 -
     def tweetsearch_query(msg) do
         corpo = String.split(msg.content, " ", parts: 2)
         argumento = Enum.fetch!(corpo, 1)
-        #resp = HTTPoison.get!("https://eldenring.fanapis.com/api/bosses?name=#{bossName}")
+        #resp = HTTPoison.get!("http://api.openweathermap.org/data/2.5/weather?q=#{argumento}&appid=#{}")
         #{:ok, map} = Poison.decode(resp.body)
         Api.create_message(msg.channel_id, "Funcao 4(tweet Search), argumento: #{argumento}")
     end
     #Funcao 5 -
-    def govstats_query(msg) do
+    def translate_query(msg) do
         corpo = String.split(msg.content, " ", parts: 2)
         argumento = Enum.fetch!(corpo, 1)
-        #resp = HTTPoison.get!("https://eldenring.fanapis.com/api/bosses?name=#{bossName}")
-        #{:ok, map} = Poison.decode(resp.body)
-        Api.create_message(msg.channel_id, "Funcao 5(Gov Stats), argumento: #{argumento}")
+
+
+        Api.create_message(msg.channel_id, "Tradução (pt-br): #{portufy(argumento)}")
     end
-    #Funcao 6 -
+    #SubFuncao 5 - Responsavel por traduzir uma string fornecida.
+    #target = codigo para linguagem a ser obtida
+    #source = codigo para linguagem origem do texto a ser traduzido
+    def translate(arg,target,source) do
+        url = "https://google-translate1.p.rapidapi.com/language/translate/v2"
+
+        payload = "q=#{arg}&target=#{target}&source=#{source}"
+        headers = [
+            "content-type": "application/x-www-form-urlencoded",
+            "Accept-Encoding": "application/gzip",
+            "X-RapidAPI-Host": "google-translate1.p.rapidapi.com",
+            "X-RapidAPI-Key": Application.fetch_env!(:nostrum, :XRapidAPIKey)
+        ]
+
+        resp = HTTPoison.post!(url, payload, headers)
+        {:ok, map} = Poison.decode(resp.body)
+        #return
+        Enum.at(map["data"]["translations"], 0)["translatedText"]
+    end
+
+    #traduz estritamente do ingles para o portugues
+    def portufy(arg) do
+      translate(arg,"pt","en")
+    end
+
+    #Funcao 6 - QR code gerado como imagem png pela api. logo, nao se foi necessario realizar um get pelo httppoison.
     def qr_query(msg) do
         corpo = String.split(msg.content, " ", parts: 2)
         argumento = Enum.fetch!(corpo, 1)
-        #resp = HTTPoison.get!("https://eldenring.fanapis.com/api/bosses?name=#{bossName}")
-        #{:ok, map} = Poison.decode(resp.body)
-        Api.create_message(msg.channel_id, "Funcao 6(Generate QR), argumento: #{argumento}")
+        Api.create_message(msg.channel_id,"https://api.qrserver.com/v1/create-qr-code/?size=256x256&data=#{argumento}")
     end
     #Funcao 7 -
     def lifeadvice_query(msg) do
-        #corpo = msg.content
         resp = HTTPoison.get!("https://api.adviceslip.com/advice")
         {:ok, map} = Poison.decode(resp.body)
         Api.create_message(msg.channel_id, "Life Advice: #{map["slip"]["advice"]}")
@@ -187,11 +224,12 @@ defmodule Testebot.Consumer do
         Api.create_message(msg.channel_id, "Funcao 9(pokemon fit for city), argumento: #{argumento}")
     end
     #Funcao 10 -
+    #API requer header "Accept" de acordo com o retorno desejado.
     def dadjoke_query(msg) do
-        #corpo = msg.content
-        #resp = HTTPoison.get!("https://eldenring.fanapis.com/api/bosses?name=#{bossName}")
-        #{:ok, map} = Poison.decode(resp.body)
-        Api.create_message(msg.channel_id, "Funcao 10(dadjoke)")
+        headers = ["Accept": "application/json"]
+        resp = HTTPoison.get!("https://icanhazdadjoke.com/", headers)
+        {:ok, map} = Poison.decode(resp.body)
+        Api.create_message(msg.channel_id, "Funcao 10(dadjoke): #{map["joke"]}")
     end
 
 
