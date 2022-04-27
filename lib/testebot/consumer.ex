@@ -27,11 +27,11 @@ defmodule Testebot.Consumer do
 
                 ")
 
-            #1
+            #1 DONE
             String.starts_with?(msg.content, "!erboss ") -> eldenring_boss_query(msg)
             String.starts_with?(msg.content, "!erboss") ->
                 Api.create_message(msg.channel_id, "Use **!erboss <Nome>**.")
-            #2
+            #2 DONE
             String.starts_with?(msg.content, "!pokedex ") -> pokedex_query(msg)
             String.starts_with?(msg.content, "!pokedex") ->
                 Api.create_message(msg.channel_id, "Use **!pokedex <Nome>**.")
@@ -52,9 +52,9 @@ defmodule Testebot.Consumer do
             String.starts_with?(msg.content, "!generateqr ") -> qr_query(msg)
             String.starts_with?(msg.content, "!generateqr") ->
                 Api.create_message(msg.channel_id, "Use **!generateqr <Link>**.")
-            #7
+            #7 DONE
             String.starts_with?(msg.content, "!lifeadvice") -> lifeadvice_query(msg)
-            #8
+            #8 DONE
             String.starts_with?(msg.content, "!startup") -> startup_query(msg)
             #9
             String.starts_with?(msg.content, "!pokemonin ") -> pokemonforcity_query(msg)
@@ -100,11 +100,39 @@ defmodule Testebot.Consumer do
     #Funcao 2 -
     def pokedex_query(msg) do
         corpo = String.split(msg.content, " ", parts: 2)
-        argumento = Enum.fetch!(corpo, 1)
-        #resp = HTTPoison.get!("https://eldenring.fanapis.com/api/bosses?name=#{bossName}")
-        #{:ok, map} = Poison.decode(resp.body)
-        Api.create_message(msg.channel_id, "Funcao 2(pokedex), argumento: #{argumento}")
+        argumento = Enum.fetch!(corpo, 1) #o nome ou numero do pokemon
+        resp = HTTPoison.get!("https://pokeapi.co/api/v2/pokemon/#{argumento}")
+
+        {status, map} = Poison.decode(resp.body)
+
+        case status do
+        #!!!!!!!usar referencia https://github.com/neomarceljuca/pythonStudies/blob/master/pokeapi.py
+        :ok ->
+            meunome = map["name"]
+            foundTypes = Enum.map(map["types"], fn val ->
+                val["type"]["name"]
+             end)
+            foundAbilities =  Enum.map(map["abilities"], fn val ->
+                val["ability"]["name"]
+             end)
+            foundStats = Enum.map(map["stats"], fn val ->
+                Enum.join([val["stat"]["name"], inspect(val["base_stat"], charlists: :as_lists)], ": ")
+            end)
+
+            officialArt = map["sprites"]["other"]["official-artwork"]["front_default"]
+
+            Api.create_message(msg.channel_id, "
+            **Nome:** #{meunome}
+            **Tipo(s):** #{Enum.join(foundTypes, ", ")}
+            **Abilidade(s):** #{Enum.join(foundAbilities, ", ")}
+            **Status Base:** #{Enum.join(foundStats, ", ")}
+            **Imagem:** #{officialArt}
+            ")
+        :error ->
+            Api.create_message(msg.channel_id, "Erro: Pokemon #{argumento} nao encontrado.")
+        end
     end
+
     #Funcao 3 -
     def weather_query(msg) do
         corpo = String.split(msg.content, " ", parts: 2)
@@ -139,17 +167,16 @@ defmodule Testebot.Consumer do
     end
     #Funcao 7 -
     def lifeadvice_query(msg) do
-        corpo = msg.content
-        #resp = HTTPoison.get!("https://eldenring.fanapis.com/api/bosses?name=#{bossName}")
-        #{:ok, map} = Poison.decode(resp.body)
-        Api.create_message(msg.channel_id, "Funcao 7(Life Advice)")
+        #corpo = msg.content
+        resp = HTTPoison.get!("https://api.adviceslip.com/advice")
+        {:ok, map} = Poison.decode(resp.body)
+        Api.create_message(msg.channel_id, "Life Advice: #{map["slip"]["advice"]}")
     end
     #Funcao 8 -
+    #API retorna texto cru, nao ha necessidade de trabalhar os dados.
     def startup_query(msg) do
-        corpo = msg.content
-        #resp = HTTPoison.get!("https://eldenring.fanapis.com/api/bosses?name=#{bossName}")
-        #{:ok, map} = Poison.decode(resp.body)
-        Api.create_message(msg.channel_id, "Funcao 8(Start up Idea)")
+        resp = HTTPoison.get!("http://itsthisforthat.com/api.php?text")
+        Api.create_message(msg.channel_id, "Funcao 8 (Start up Idea):  #{resp.body}")
     end
     #Funcao 9 -
     def pokemonforcity_query(msg) do
@@ -161,7 +188,7 @@ defmodule Testebot.Consumer do
     end
     #Funcao 10 -
     def dadjoke_query(msg) do
-        corpo = msg.content
+        #corpo = msg.content
         #resp = HTTPoison.get!("https://eldenring.fanapis.com/api/bosses?name=#{bossName}")
         #{:ok, map} = Poison.decode(resp.body)
         Api.create_message(msg.channel_id, "Funcao 10(dadjoke)")
