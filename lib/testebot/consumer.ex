@@ -17,12 +17,12 @@ defmodule Testebot.Consumer do
 1- !erboss nome: Elden Ring API - Obter informações sobre o jogo por consulta get na API. obtém informações de itens, armas, armaduras, mobs, chefes e talismãs.
 2- !pokedex nome/numero: Exibe informações básicas sobre determinado pokemon por nome ou número, utilizando a PokeAPI
 3- !weather cidade: Exibe relatório geral climático de determinada cidade, com informações complementares, utilizando a OpenWeather API
-4- !tweetsearch keyword: Pesquisa os 10 tweets mais recentes e detalhes contendo a palavra chave fornecida. Requer conta/token apropriado e utiliza a API oficial do twitter.
+4- !preview link: Fornece resumo e previsao de informacoes de um link fornecido.
 5- !translate: Traduz qualquer texto fornecido em ingles para portugues, atraves da google translate API
 6- !generateqr link: gera qr code copiável para qualquer link fornecido.
 7- !lifeadvice: Gera conselho aleatório sobre a vida chamado por Advice Slip
 8- !startup: Gera uma definição de StartUp
-9- !pokemonin cidade: Acessa a API Openweather, obtém o clima da cidade fornecida e retorna uma lista de 10 pokemons (Acessando a pokeAPI) adequados para aquela cidade
+9- !wolfram search: Acessa a API do Wolfram e realiza pesquisa do que for informado em *search*
 10- !dadjoke: gera dad joke anonima
 
                 ")
@@ -40,10 +40,10 @@ defmodule Testebot.Consumer do
             String.starts_with?(msg.content, "!weather ") -> weather_query(msg)
             String.starts_with?(msg.content, "!weather") ->
                 Api.create_message(msg.channel_id, "Use **!weather <Nome da cidade>**.")
-            #4
-            String.starts_with?(msg.content, "!tweetsearch ") -> tweetsearch_query(msg)
-            String.starts_with?(msg.content, "!tweetsearch") ->
-                Api.create_message(msg.channel_id, "Use **!tweetsearch <Termo>**.")
+            #4 DONE
+            String.starts_with?(msg.content, "!preview ") -> preview_query(msg)
+            String.starts_with?(msg.content, "!preview") ->
+                Api.create_message(msg.channel_id, "Use **!preview <Link>**.")
             #5 DONE
             String.starts_with?(msg.content, "!translate ") -> translate_query(msg)
             String.starts_with?(msg.content, "!translate") ->
@@ -56,10 +56,10 @@ defmodule Testebot.Consumer do
             String.equivalent?(msg.content, "!lifeadvice") -> lifeadvice_query(msg)
             #8 DONE
             String.equivalent?(msg.content, "!startup") -> startup_query(msg)
-            #9
-            String.starts_with?(msg.content, "!pokemonin ") -> pokemonforcity_query(msg)
-            String.starts_with?(msg.content, "!pokemonin") ->
-                Api.create_message(msg.channel_id, "Use **!pokemonin <Cidade>**.")
+            #9 DONE
+            String.starts_with?(msg.content, "!wolfram ") -> wolfram_query(msg)
+            String.starts_with?(msg.content, "!wolfram") ->
+                Api.create_message(msg.channel_id, "Use **!wolfram <Pesquisa>**.")
             #10 DONE
             String.equivalent?(msg.content, "!dadjoke") -> dadjoke_query(msg)
 
@@ -157,12 +157,19 @@ defmodule Testebot.Consumer do
 
     end
     #Funcao 4 -
-    def tweetsearch_query(msg) do
+    def preview_query(msg) do
         corpo = String.split(msg.content, " ", parts: 2)
         argumento = Enum.fetch!(corpo, 1)
-        #resp = HTTPoison.get!("http://api.openweathermap.org/data/2.5/weather?q=#{argumento}&appid=#{}")
-        #{:ok, map} = Poison.decode(resp.body)
-        Api.create_message(msg.channel_id, "Funcao 4(tweet Search), argumento: #{argumento}")
+        mykey = Application.get_env(:nostrum, :linkPreviewKey)
+
+        resp = HTTPoison.get!("http://api.linkpreview.net/?key=#{mykey}&q=#{argumento}")
+        {:ok, map} = Poison.decode(resp.body)
+        Api.create_message(msg.channel_id, "Link Preview
+        Titulo: #{map["title"]}
+        Descricao: #{map["description"]}
+        Imagem: #{map["image"]}
+        URL: #{map["url"]}
+        ")
     end
     #Funcao 5 -
     def translate_query(msg) do
@@ -216,12 +223,16 @@ defmodule Testebot.Consumer do
         Api.create_message(msg.channel_id, "Funcao 8 (Start up Idea):  #{resp.body}")
     end
     #Funcao 9 -
-    def pokemonforcity_query(msg) do
+    def wolfram_query(msg) do
         corpo = String.split(msg.content, " ", parts: 2)
-        argumento = Enum.fetch!(corpo, 1)
-        #resp = HTTPoison.get!("https://eldenring.fanapis.com/api/bosses?name=#{bossName}")
-        #{:ok, map} = Poison.decode(resp.body)
-        Api.create_message(msg.channel_id, "Funcao 9(pokemon fit for city), argumento: #{argumento}")
+        argumento =  String.replace(Enum.fetch!(corpo, 1), " ","%20")
+        appid = Application.get_env(:nostrum, :wolframID)
+        #http://api.wolframalpha.com/v1/result?appid=DEMO&i=
+        #resp = HTTPoison.get!("http://api.wolframalpha.com/v2/query?input=#{argumento}&appid=#{appid}")
+        resp = HTTPoison.get!("http://api.wolframalpha.com/v1/result?appid=#{appid}&i=#{argumento}")
+
+       # {:ok, map} = Poison.decode(resp.body)
+        Api.create_message(msg.channel_id, " argumento: #{resp.body}")
     end
     #Funcao 10 -
     #API requer header "Accept" de acordo com o retorno desejado.
