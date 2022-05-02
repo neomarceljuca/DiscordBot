@@ -179,7 +179,7 @@ defmodule Testebot.Consumer do
 
         Api.create_message(msg.channel_id, "Tradução (pt-br): #{portufy(argumento)}")
     end
-    #SubFuncao 5 - Responsavel por traduzir uma string fornecida.
+    #funcao auxiliar 5 - Responsavel por traduzir uma string fornecida.
     #target = codigo para linguagem a ser obtida
     #source = codigo para linguagem origem do texto a ser traduzido
     def translate(arg,target,source) do
@@ -199,7 +199,7 @@ defmodule Testebot.Consumer do
         Enum.at(map["data"]["translations"], 0)["translatedText"]
     end
 
-    #traduz estritamente do ingles para o portugues
+    #funcao auxiliar: traduz estritamente do ingles para o portugues
     def portufy(arg) do
       translate(arg,"pt","en")
     end
@@ -232,7 +232,7 @@ defmodule Testebot.Consumer do
         resp = HTTPoison.get!("http://api.wolframalpha.com/v1/result?appid=#{appid}&i=#{argumento}")
 
        # {:ok, map} = Poison.decode(resp.body)
-        Api.create_message(msg.channel_id, " argumento: #{resp.body}")
+        Api.create_message(msg.channel_id, "#{resp.body}")
     end
     #Funcao 10 -
     #API requer header "Accept" de acordo com o retorno desejado.
